@@ -6,6 +6,19 @@ const fs = require('fs');
 // For more information please see https://github.com/couger-inc/berlin_hackathon/wiki
 const judgementAPI = protobuf(fs.readFileSync(path.resolve(__dirname, '../../proto/judgement_api.proto')));
 
+const reactions = [87, 88, 93, 101, 110, 109, 116, 106, 141];
+const reactions2 = {
+    'umbrella': 42,
+    'handbag': 43,
+    'tie': 44,
+    'suitcase': 45,
+    'bottle': 46,
+    'chair': 47,
+    'dining table': 48,
+    'tv': 49,
+    'cell phone': 50,
+};
+
 /**
  * Handler Class
  */
@@ -17,31 +30,34 @@ class Handler {
     constructor(connection) {
         this.connection = connection;
 
+        this.obj = {};
+
         // example: Send Move ("Camera Front") + LookAt ("Camera") + Motion (Waving her hands) + Speech ("Nice to meet you")
-        const res = judgementAPI.JudgementResponse.encode({
-            actions: [
-            {
-                type: judgementAPI.ActionType.Move,
-                args: ['CameraFrontBustup'],
-            },
-            {
-                type: judgementAPI.ActionType.LookAt,
-                args: ['Camera'],
-            },
-            {
-                type: judgementAPI.ActionType.Motion,
-                args: ['12'],
-            },
-            {
-                type: judgementAPI.ActionType.Speech,
-                args: ['2'],
-            },
-            {
-                type: judgementAPI.ActionType.Wait,
-                args: ['5000'],
-            }],
-        });
-        connection.sendBytes(res);
+        // const res = judgementAPI.JudgementResponse.encode({
+        //     actions: [
+        //     {
+        //         type: judgementAPI.ActionType.Move,
+        //         args: ['CameraFrontBustup'],
+        //     },
+        //     {
+        //         type: judgementAPI.ActionType.LookAt,
+        //         args: ['Camera'],
+        //     },
+        //     {
+        //         type: judgementAPI.ActionType.Motion,
+        //         args: ['12'],
+        //     },
+        //     {
+        //         type: judgementAPI.ActionType.Speech,
+        //         args: ['2'],
+        //     },
+        //     {
+        //         type: judgementAPI.ActionType.Wait,
+        //         args: ['5000'],
+        //     }],
+        // });
+        // connection.sendBytes(res);
+        this._speech(63);
     }
 
     /**
@@ -56,8 +72,54 @@ class Handler {
         // Decode rawReq using protocol buffer
         const req = judgementAPI.JudgementRequest.decode(rawReq);
         console.log(JSON.stringify(req));
-        // example: Respond with Move ("Camera Front") + LookAt ("Camera") + Motion ("Surprised") + Speech ("I want you to say it again") + Wait (5sec) to any request
-        // Encode using protocol buffer
+
+        console.log(req.message);
+        if (req.message != '') {
+            if (match(req.message, ['bye', 'ばいばい', 'バイバイ', 'see you'])) {
+                this._speech(79);
+                return;
+            }
+            if (match(req.message, ['what', '何'])) {
+                // 疑問系、知らんがな
+                this._speech(59);
+                return;
+            }
+            if (match(req.message, ['かわいい', 'cute'])) {
+                this._speech(60);
+                this._speech(153);
+                return;
+            }
+            this._speech(reactions[Math.floor(Math.random() * reactions.length)]);
+        }
+        if (req.images.length != 0) {
+            req.images.forEach((image)=>{
+                if (image.confidence > 80) {
+                    if (!this.obj[image.label]) {
+                        if (Object.keys(reactions2).indexOf(image.label)!=-1) {
+                            this.obj[image.label] = true;
+                            this._speech(23);
+                            this._speech(reactions2[image.label]);
+                            setTimeout(() => {
+                                this.obj[image.label] = false;
+                            }, 60000);
+                        }
+                    }
+                }
+            });
+            if (req.images.filter((image)=>image.label=='person').length >= 3) {
+                if (!this.obj['person']) {
+                    this.obj['person'] = true;
+                    this._speech(32);
+                    setTimeout(() => {
+                        this.obj['person'] = false;
+                    }, 60000);
+                }
+            }
+        }
+    }
+
+    _speech(word) {
+        console.log(word);
         const res = judgementAPI.JudgementResponse.encode({
             actions: [{
                 type: judgementAPI.ActionType.Move,
@@ -73,17 +135,15 @@ class Handler {
             },
             {
                 type: judgementAPI.ActionType.Speech,
-                args: ['57'],
+                args: [word.toString()],
             },
             {
                 type: judgementAPI.ActionType.Wait,
-                args: ['5000'],
+                args: ['1500'],
             }],
         });
-        // Send to client
         this.connection.sendBytes(res);
     }
-
     /**
      * Destractor
      */
@@ -92,3 +152,16 @@ class Handler {
 }
 
 module.exports = Handler;
+
+function match(str, words) {
+    for (let i=0; i<words.length; i++) {
+        if (str.indexOf(words[i]) != -1) {
+            return true;
+        }
+        const tmp = str.charAt(0).toUpperCase() + str.slice(1);
+        if (tmp.indexOf(words[i]) != -1) {
+            return true;
+        }
+    }
+    return false;
+}
