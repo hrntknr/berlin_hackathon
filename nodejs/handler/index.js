@@ -79,7 +79,7 @@ class Handler {
                 this._speech(79);
                 return;
             }
-            if (match(req.message, ['what', '何'])) {
+            if (match(req.message, ['what', '何', '?'])) {
                 // 疑問系、知らんがな
                 this._speech(197);
                 this._speech(59);
