@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/url"
 
-	judgementAPI "github.com/couger-inc/berlin_hackathon/go/judgementAPI"
 	proto "github.com/golang/protobuf/proto"
+	judgementAPI "github.com/hrntknr/berlin_hackathon/go/judgementAPI"
 	"golang.org/x/net/websocket"
 )
 
