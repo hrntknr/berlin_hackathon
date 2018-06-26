@@ -81,15 +81,16 @@ class Handler {
             }
             if (match(req.message, ['what', '何'])) {
                 // 疑問系、知らんがな
+                this._speech(197);
                 this._speech(59);
                 return;
             }
             if (match(req.message, ['かわいい', 'cute'])) {
-                this._speech(60);
-                this._speech(153);
+                this._speech(60, 14);
+                this._speech(159);
                 return;
             }
-            this._speech(reactions[Math.floor(Math.random() * reactions.length)]);
+            this._speech(reactions[Math.floor(Math.random() * reactions.length)], 13);
         }
         if (req.images.length != 0) {
             req.images.forEach((image)=>{
@@ -110,6 +111,7 @@ class Handler {
                 if (!this.obj['person']) {
                     this.obj['person'] = true;
                     this._speech(32);
+                    this._speech(41);
                     setTimeout(() => {
                         this.obj['person'] = false;
                     }, 60000);
@@ -118,30 +120,51 @@ class Handler {
         }
     }
 
-    _speech(word) {
-        console.log(word);
-        const res = judgementAPI.JudgementResponse.encode({
-            actions: [{
-                type: judgementAPI.ActionType.Move,
-                args: ['CameraFrontBody'],
-            },
-            {
-                type: judgementAPI.ActionType.LookAt,
-                args: ['Camera'],
-            },
-            {
-                type: judgementAPI.ActionType.Motion,
-                args: ['19'],
-            },
-            {
-                type: judgementAPI.ActionType.Speech,
-                args: [word.toString()],
-            },
-            {
-                type: judgementAPI.ActionType.Wait,
-                args: ['1500'],
-            }],
-        });
+    _speech(word, motion) {
+        let res;
+        if (motion == null) {
+            res = judgementAPI.JudgementResponse.encode({
+                actions: [{
+                    type: judgementAPI.ActionType.Move,
+                    args: ['CameraFrontBody'],
+                },
+                {
+                    type: judgementAPI.ActionType.LookAt,
+                    args: ['Camera'],
+                },
+                {
+                    type: judgementAPI.ActionType.Speech,
+                    args: [word.toString()],
+                },
+                {
+                    type: judgementAPI.ActionType.Wait,
+                    args: ['1500'],
+                }],
+            });
+        } else {
+            res = judgementAPI.JudgementResponse.encode({
+                actions: [{
+                    type: judgementAPI.ActionType.Move,
+                    args: ['CameraFrontBody'],
+                },
+                {
+                    type: judgementAPI.ActionType.LookAt,
+                    args: ['Camera'],
+                },
+                {
+                    type: judgementAPI.ActionType.Motion,
+                    args: [motion.toString()],
+                },
+                {
+                    type: judgementAPI.ActionType.Speech,
+                    args: [word.toString()],
+                },
+                {
+                    type: judgementAPI.ActionType.Wait,
+                    args: ['1500'],
+                }],
+            });
+        }
         this.connection.sendBytes(res);
     }
     /**
